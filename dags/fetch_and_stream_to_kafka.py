@@ -5,6 +5,10 @@ from airflow.decorators import task
 import time
 import logging
 
+import sys
+
+# sys.path.append('/opt/airflow/')
+
 # Import functions from src
 from src.data_fetch_and_send import initialize_producer, fetch_and_send_data
 

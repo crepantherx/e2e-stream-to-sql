@@ -3,7 +3,7 @@ import time
 import logging
 from src.data_fetcher import get_data
 from src.data_formatter import format_data
-from configs.config import KAFKA_TOPIC, KAFKA_BOOTSTRAP_SERVERS
+from src.config import KAFKA_TOPIC, KAFKA_BOOTSTRAP_SERVERS
 from kafka import KafkaProducer
 
 
