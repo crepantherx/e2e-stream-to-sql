@@ -15,16 +15,18 @@ def create_keyspace(session):
     print("Keyspace created successfully!")
 
 
+# id UUID PRIMARY KEY,
+
 def create_table(session):
     session.execute("""
-    CREATE TABLE IF NOT EXISTS spark_streams.created_users (
-        id UUID PRIMARY KEY,
+    CREATE TABLE IF NOT EXISTS spark_streams.created_userssss (
+        id TEXT,
         first_name TEXT,
         last_name TEXT,
         gender TEXT,
         address TEXT,
         post_code TEXT,
-        email TEXT,
+        email TEXT PRIMARY KEY,
         username TEXT,
         registered_date TEXT,
         phone TEXT,
@@ -152,7 +154,7 @@ if __name__ == "__main__":
             streaming_query = (selection_df.writeStream.format("org.apache.spark.sql.cassandra")
                                .option('checkpointLocation', '/tmp/checkpoint')
                                .option('keyspace', 'spark_streams')
-                               .option('table', 'created_users')
+                               .option('table', 'created_userssss')
                                .start())
 
             streaming_query.awaitTermination()

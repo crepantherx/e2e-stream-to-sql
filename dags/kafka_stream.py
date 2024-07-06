@@ -62,7 +62,7 @@ def stream_data():
 
 
 dag = DAG(
-    'new-kafka-stream',
+    'new-amruta-stream',
     default_args=default_args,
     description='A simple DAG to execute a Python script using TaskFlow API',
     schedule='@daily',
