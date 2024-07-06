@@ -1,74 +1,61 @@
+# dags/my_dag.py
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.decorators import task
-import json
-from kafka import KafkaProducer
 import time
 import logging
-import requests
-import  uuid
+
+# Import functions from src
+from src.data_fetch_and_send import initialize_producer, fetch_and_send_data
 
 default_args = {
-    'owner': 'crepantherx',
-    'start_date': datetime(2023, 9, 3, 10, 00)
+    'owner': 'Sudhir Singh',
+    'start_date': datetime(2023, 9, 3, 10, 00),
+    'email': ['crepantherx@gmail.com'],
+    'email_on_failure': True,
+    'email_on_retry': False,
+    'retries': 3,
+    'retry_delay': timedelta(minutes=5),
+    'depends_on_past': False,
+    'execution_timeout': timedelta(minutes=10),
+    'catchup': False,
 }
 
-
-def get_data():
-    res = requests.get("https://randomuser.me/api/")
-    res = res.json()
-    res = res['results'][0]
-    return res
-
-
-def format_data(res):
-    data = {}
-    location = res['location']
-    data['id'] = str(uuid.uuid4())
-    data['first_name'] = res['name']['first']
-    data['last_name'] = res['name']['last']
-    data['gender'] = res['gender']
-    data['address'] = f"{str(location['street']['number'])} {location['street']['name']}, " \
-                      f"{location['city']}, {location['state']}, {location['country']}"
-    data['post_code'] = location['postcode']
-    data['email'] = res['email']
-    data['username'] = res['login']['username']
-    data['dob'] = res['dob']['date']
-    data['registered_date'] = res['registered']['date']
-    data['phone'] = res['phone']
-    data['picture'] = res['picture']['medium']
-
-    return data
+dag = DAG(
+    'users-stream',
+    default_args=default_args,
+    description='DAG using TaskFlow API, to request and stream to kafka',
+    schedule_interval='@daily',
+    start_date=datetime(2023, 1, 1),
+    catchup=False,
+    max_active_runs=1,
+    tags=['sudhir', 'kafka'],
+    doc_md="""
+    This DAG is designed to stream data to Kafka. It performs the following steps:
+    
+    1. Initializes a Kafka producer.
+    2. Fetches data from an API.
+    3. Formats the data.
+    4. Sends the formatted data to Kafka.
+    """
+)
 
 
 @task
-def stream_data():
+def stream_data_to_kafka():
+    producer = initialize_producer()
+    if not producer:
+        logging.error("Failed to initialize Kafka producer. Exiting.")
+        return
 
-    producer = KafkaProducer(bootstrap_servers=['broker:29092'], max_block_ms=5000)
+    start_time = time.time()
+    end_time = start_time + 60
 
-    curr_time = time.time()
+    fetch_and_send_data(producer, end_time)
 
-    while True:
-        if time.time() > curr_time + 60:
-            break
-        try:
-            res = get_data()
-            res = format_data(res)
+    producer.close()
+    logging.info("Kafka producer closed.")
 
-            producer.send('users_created', json.dumps(res).encode('utf-8'))
-        except Exception as e:
-            logging.error(f'An error occured: {e}')
-            continue
-
-
-dag = DAG(
-    'new-amruta-stream',
-    default_args=default_args,
-    description='A simple DAG to execute a Python script using TaskFlow API',
-    schedule='@daily',
-    start_date=datetime(2023, 1, 1),
-    catchup=False,
-)
 
 with dag:
-    stream_data()
+    stream_data_to_kafka()
